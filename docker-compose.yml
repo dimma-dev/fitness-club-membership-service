@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: db
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  web:
+    build: .
+    container_name: django_web
+    working_dir: /app/src
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      # bind container port 8000 to host localhost:8000 so app is reachable at 127.0.0.1:8000
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    working_dir: /app/src
+    command: celery -A config worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+      - web
+    restart: unless-stopped
+
+  celery_beat:
+    build: .
+    container_name: celery_beat
+    working_dir: /app/src
+    command: celery -A config beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - postgres
+      - web
+    restart: unless-stopped
+
+  flower:
+    build: .
+    container_name: celery_flower
+    working_dir: /app/src
+    command: celery -A config flower --port=5555
+    ports:
+      - "${FLOWER_PORT}:5555"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - celery_worker
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
