@@ -1,0 +1,28 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .tox,
+    .eggs,
+    *.egg,
+    .pytest_cache,
+    .mypy_cache,
+    node_modules,
+    .vscode,
+    .idea,
+    .env,
+    migrations,
+    build,
+    dist
+
+ignore =
+    E203,
+    W503,
+    E501
+
+max-line-length = 88
+max-complexity = 10
+
