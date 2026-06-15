@@ -1,5 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
+import socket
+import warnings
 
 import dj_database_url
 from decouple import Csv, config
@@ -67,12 +69,28 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 DATABASE_URL = config("DATABASE_URL", default="")
-if not DATABASE_URL and config("POSTGRES_DB", default=""):
-    DATABASE_URL = (
-        f"postgres://{config('POSTGRES_USER')}:{config('POSTGRES_PASSWORD')}"
-        f"@{config('POSTGRES_HOST', default='db')}:{config('POSTGRES_PORT', default='5432')}"
-        f"/{config('POSTGRES_DB')}"
-    )
+POSTGRES_DB = config("POSTGRES_DB", default="")
+if not DATABASE_URL and POSTGRES_DB:
+    # Check whether the configured Postgres host is resolvable (helps when running outside Docker)
+    POSTGRES_HOST = config("POSTGRES_HOST", default="db")
+    host_resolvable = True
+    try:
+        # try to resolve DNS name; will raise socket.gaierror if it cannot be resolved
+        socket.getaddrinfo(POSTGRES_HOST, None)
+    except Exception:
+        host_resolvable = False
+        warnings.warn(
+            f"Postgres host '{POSTGRES_HOST}' is not resolvable; falling back to sqlite."
+            " If you expect to use Postgres, set DATABASE_URL or ensure the host is reachable.",
+            RuntimeWarning,
+        )
+
+    if host_resolvable:
+        DATABASE_URL = (
+            f"postgres://{config('POSTGRES_USER')}:{config('POSTGRES_PASSWORD')}"
+            f"@{POSTGRES_HOST}:{config('POSTGRES_PORT', default='5432')}"
+            f"/{POSTGRES_DB}"
+        )
 
 
 if DATABASE_URL:
@@ -86,7 +104,6 @@ else:
     }
 
 
-# Use custom user model from `users` app created from merged models
 AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -121,7 +138,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- DJANGO REST FRAMEWORK ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly",
@@ -168,3 +185,11 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# --JWT ----
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Authorize",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}

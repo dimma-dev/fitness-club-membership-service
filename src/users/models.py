@@ -3,7 +3,6 @@ from django.db import models
 
 
 class CustomUserManager(BaseUserManager):
-
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
@@ -33,7 +32,6 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    # use email as unique identifier instead of username
     username = None
     email = models.EmailField("email address", unique=True)
 
