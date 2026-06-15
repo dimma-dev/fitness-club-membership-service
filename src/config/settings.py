@@ -1,5 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
+import socket
+import warnings
 
 import dj_database_url
 from decouple import Csv, config
@@ -65,12 +67,28 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 DATABASE_URL = config("DATABASE_URL", default="")
-if not DATABASE_URL and config("POSTGRES_DB", default=""):
-    DATABASE_URL = (
-        f"postgres://{config('POSTGRES_USER')}:{config('POSTGRES_PASSWORD')}"
-        f"@{config('POSTGRES_HOST', default='db')}:{config('POSTGRES_PORT', default='5432')}"
-        f"/{config('POSTGRES_DB')}"
-    )
+POSTGRES_DB = config("POSTGRES_DB", default="")
+if not DATABASE_URL and POSTGRES_DB:
+    # Check whether the configured Postgres host is resolvable (helps when running outside Docker)
+    POSTGRES_HOST = config("POSTGRES_HOST", default="db")
+    host_resolvable = True
+    try:
+        # try to resolve DNS name; will raise socket.gaierror if it cannot be resolved
+        socket.getaddrinfo(POSTGRES_HOST, None)
+    except Exception:
+        host_resolvable = False
+        warnings.warn(
+            f"Postgres host '{POSTGRES_HOST}' is not resolvable; falling back to sqlite."
+            " If you expect to use Postgres, set DATABASE_URL or ensure the host is reachable.",
+            RuntimeWarning,
+        )
+
+    if host_resolvable:
+        DATABASE_URL = (
+            f"postgres://{config('POSTGRES_USER')}:{config('POSTGRES_PASSWORD')}"
+            f"@{POSTGRES_HOST}:{config('POSTGRES_PORT', default='5432')}"
+            f"/{POSTGRES_DB}"
+        )
 
 
 if DATABASE_URL:
