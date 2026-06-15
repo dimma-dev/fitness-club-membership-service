@@ -27,6 +27,13 @@ INSTALLED_APPS = [
     "drf_spectacular",
 ]
 
+INSTALLED_APPS += [
+    "users",
+    "plans",
+    "membership",
+    "payments",
+]
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -77,10 +84,8 @@ else:
     }
 
 
-# Use the default Django user model unless a custom user model is provided.
-# The project previously referenced 'user.User' which is not installed and causes
-# ImproperlyConfigured errors when Django starts. Change to built-in 'auth.User'.
-AUTH_USER_MODEL = "auth.User"
+# Use custom user model from `users` app created from merged models
+AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
