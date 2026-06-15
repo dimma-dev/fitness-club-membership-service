@@ -147,9 +147,25 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Fitness Club Membership API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SCHEMA_PATH_PREFIX": r"/api/v[0-9]",
+    "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
     "SECURITY": [{"bearerAuth": []}],
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "displayOperationId": False,
+        "defaultModelsExpandDepth": -1,  # Прячет блок Models в самый низ
+    },
+    "AUTO_SCHEMA_EXTENSIONS": True,
+    "TAGS": [
+            {
+                "name": "Memberships",
+                "description": "Managing club memberships: purchase, status tracking, freezing, and plan upgrades.",
+            },
+            {
+                "name": "Users",
+                "description": "Managing user accounts, profiles, and JWT authentication.",
+            },
+        ],
 }
 
 # Celery Configuration

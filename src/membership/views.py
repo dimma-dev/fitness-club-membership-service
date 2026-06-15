@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from membership.filters import MembershipFilter
 from membership.models import Membership
@@ -16,8 +17,12 @@ from membership.serializers import (
 from payments.models import Payment
 from plans.models import MembershipPlan
 
-
+@extend_schema(tags=["Memberships"])
 class MembershipViewSet(viewsets.ModelViewSet):
+    """
+        API endpoint for managing fitness club memberships.
+        Access is restricted to authorized clients only.
+        """
     queryset = Membership.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
