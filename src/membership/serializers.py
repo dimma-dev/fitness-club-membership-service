@@ -47,7 +47,17 @@ class FreezeSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data["frozen_from"] >= data["frozen_to"]:
-            raise serializers.ValidationError("The 'to' date must be after the 'from' date.")
+            raise serializers.ValidationError(
+                "The 'to' date must be after the 'from' date."
+            )
         if data["frozen_from"] < date.today():
-            raise serializers.ValidationError("You can't freeze the past.")
+            raise serializers.ValidationError(
+                "You can't freeze the past."
+            )
+        freeze_days = (self.frozen_to - self.frozen_from).days
+        if freeze_days > 30:
+            raise serializers.ValidationError(
+                "Freeze period cannot exceed 30 days."
+            )
         return data
+
