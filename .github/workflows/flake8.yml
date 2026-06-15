@@ -1,0 +1,32 @@
+name: Flake8 Linting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+
+    - name: Run flake8
+      run: |
+        # Проверка синтаксиса Python и стиля кода
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Полная проверка с ограничением
+        flake8 src/ --count --max-line-length=100 --statistics --max-complexity=10
+
