@@ -2,21 +2,25 @@ name: Flake8 Linting
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - dev
   pull_request:
-    branches: [ main, develop ]
+    branches:
+      - dev
 
 jobs:
   flake8:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
@@ -25,8 +29,5 @@ jobs:
 
     - name: Run flake8
       run: |
-        # Проверка синтаксиса Python и стиля кода
-        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Полная проверка с ограничением
-        flake8 src/ --count --max-line-length=100 --statistics --max-complexity=10
+        flake8 src/ --count --max-line-length=100 --max-complexity=10 --show-source --statistics
 
