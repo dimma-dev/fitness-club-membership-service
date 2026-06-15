@@ -1,89 +1,102 @@
 services:
-  postgres:
+  db:
     image: postgres:17-alpine
-    container_name: db
-    restart: unless-stopped
+    # no fixed container_name to avoid collisions in dev/CI
+    restart: "no"
     ports:
       - "${POSTGRES_PORT}:5432"
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: redis
-    restart: unless-stopped
+    restart: "no"
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
-    container_name: django_web
+    image: my_django_app:local
     working_dir: /app/src
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
-      # bind container port 8000 to host localhost:8000 so app is reachable at 127.0.0.1:8000
-      - "127.0.0.1:8000:8000"
+      - "${DJANGO_PORT}:8000"
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     env_file:
       - .env
+    # rely on healthchecks + entrypoint wait rather than depends_on conditions
     depends_on:
-      - postgres
+      - db
       - redis
-    restart: unless-stopped
+    restart: "no"
 
   celery_worker:
-    build: .
-    container_name: celery_worker
+    image: my_django_app:local
+    pull_policy: never
     working_dir: /app/src
     command: celery -A config worker --loglevel=info
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
       - web
-    restart: unless-stopped
+      - redis
+      - db
+    restart: "no"
 
   celery_beat:
-    build: .
-    container_name: celery_beat
+    image: my_django_app:local
+    pull_policy: never
     working_dir: /app/src
     command: celery -A config beat --loglevel=info
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
       - web
-    restart: unless-stopped
+      - redis
+      - db
+    restart: "no"
 
   flower:
-    build: .
-    container_name: celery_flower
+    image: my_django_app:local
+    pull_policy: never
     working_dir: /app/src
-    command: celery -A config flower --port=5555
+    command: celery -A config flower --port=5555 --broker=redis://redis:6379/0
     ports:
       - "${FLOWER_PORT}:5555"
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
       - redis
       - celery_worker
-    restart: unless-stopped
+    restart: "no"
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+  static_volume:
+  media_volume:
