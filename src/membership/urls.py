@@ -5,7 +5,7 @@ from membership.views import MembershipViewSet
 
 app_name = "membership"
 router = routers.DefaultRouter()
-router.register("memberships", MembershipViewSet, basename="membership")
+router.register("", MembershipViewSet, basename="memberships")
 
 urlpatterns = [
     path("", include(router.urls)),

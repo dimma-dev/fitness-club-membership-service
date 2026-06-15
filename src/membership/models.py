@@ -27,9 +27,6 @@ class Membership(models.Model):
     price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
     auto_renew = models.BooleanField(default=False)
 
-    plan = models.OneToOneField(
-        MembershipPlan,
-    )
 
     member = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -38,7 +35,7 @@ class Membership(models.Model):
     )
     plan = models.ForeignKey(
         MembershipPlan,
-        on_delete=models.PROTECT(),
+        on_delete=models.PROTECT,
         related_name="plan_memberships",
     )
 
