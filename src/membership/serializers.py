@@ -60,4 +60,3 @@ class FreezeSerializer(serializers.Serializer):
                 "Freeze period cannot exceed 30 days."
             )
         return data
-

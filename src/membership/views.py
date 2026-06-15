@@ -17,6 +17,7 @@ from membership.serializers import (
 from payments.models import Payment
 from plans.models import MembershipPlan
 
+
 @extend_schema(tags=["Memberships"])
 class MembershipViewSet(viewsets.ModelViewSet):
     """

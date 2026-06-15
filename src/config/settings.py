@@ -157,15 +157,15 @@ SPECTACULAR_SETTINGS = {
     },
     "AUTO_SCHEMA_EXTENSIONS": True,
     "TAGS": [
-            {
-                "name": "Memberships",
-                "description": "Managing club memberships: purchase, status tracking, freezing, and plan upgrades.",
-            },
-            {
-                "name": "Users",
-                "description": "Managing user accounts, profiles, and JWT authentication.",
-            },
-        ],
+        {
+            "name": "Memberships",
+            "description": "Managing club memberships: purchase, status tracking, freezing, and plan upgrades.",
+        },
+        {
+            "name": "Users",
+            "description": "Managing user accounts, profiles, and JWT authentication.",
+        },
+    ],
 }
 
 # Celery Configuration
