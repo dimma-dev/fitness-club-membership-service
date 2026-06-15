@@ -20,7 +20,6 @@ DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
 
 
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
