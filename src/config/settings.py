@@ -79,7 +79,10 @@ else:
     }
 
 
-AUTH_USER_MODEL = "user.User"
+# Use the default Django user model unless a custom user model is provided.
+# The project previously referenced 'user.User' which is not installed and causes
+# ImproperlyConfigured errors when Django starts. Change to built-in 'auth.User'.
+AUTH_USER_MODEL = "auth.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -96,13 +99,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Kyiv"
 USE_I18N = True
 USE_TZ = True
-
 
 
 STATIC_URL = config("STATIC_URL", default="/static/")
