@@ -94,13 +94,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Kyiv"
 USE_I18N = True
 USE_TZ = True
-
 
 
 STATIC_URL = config("STATIC_URL", default="/static/")
