@@ -27,7 +27,6 @@ class Membership(models.Model):
     price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
     auto_renew = models.BooleanField(default=False)
 
-
     member = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
