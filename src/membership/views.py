@@ -15,6 +15,7 @@ from membership.serializers import (
     MembershipReadSerializer,
 )
 from payments.models import Payment
+from payments.stripe_helper import create_stripe_session
 from plans.models import MembershipPlan
 
 
@@ -56,13 +57,18 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 status=Membership.Status.PENDING,
             )
 
-            Payment.objects.create(
-                user=user,
-                status=Payment.Status.PENDING,
-                type=Payment.Type.MEMBERSHIP_PURCHASE,
-                membership_id=membership.id,
-                money_to_pay=membership.price_at_purchase
+            payment = create_stripe_session(
+                membership=membership,
+                payment_type=Payment.Type.MEMBERSHIP_PURCHASE,
+                amount=membership.price_at_purchase,
+                request=self.request
             )
+        return Response({
+            "membership": MembershipReadSerializer(membership).data,
+            "stripe_session_url": payment.session_url,
+            "payment_id": payment.id
+        }, status=status.HTTP_201_CREATED)
+
 
     @action(detail=True, methods=["post"])
     def freeze(self, request, pk=None):
@@ -150,17 +156,17 @@ class MembershipViewSet(viewsets.ModelViewSet):
         upgrade_fee = round(max(0, new_full_price - credit), 2)
 
         with transaction.atomic():
-            payment = Payment.objects.create(
-                user=request.user,
-                status=Payment.Status.PENDING,
-                type=Payment.Type.UPGRADE_FEE,
-                membership_id=membership.id,
-                money_to_pay=upgrade_fee
+            payment = create_stripe_session(
+                membership=membership,
+                payment_type=Payment.Type.UPGRADE_FEE,
+                amount=upgrade_fee,
+                request=request
             )
 
             return Response({
                 "message": "Upgrade payment created. Once paid, your plan will be updated.",
                 "payment_id": payment.id,
                 "amount_to_pay": payment.money_to_pay,
+                "stripe_session_url": payment.session_url,
                 "new_plan_name": new_plan.name
             }, status=status.HTTP_201_CREATED)
