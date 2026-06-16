@@ -5,7 +5,6 @@ from plans.models import MembershipPlan
 
 
 class Membership(models.Model):
-
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
         FROZEN = "FROZEN", "Frozen"
@@ -28,16 +27,15 @@ class Membership(models.Model):
     price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
     auto_renew = models.BooleanField(default=False)
 
-    plan = models.ForeignKey(
-        MembershipPlan,
-        on_delete=models.PROTECT,
-        related_name="plan_memberships",
-    )
-
     member = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="user_memberships",
+    )
+    plan = models.ForeignKey(
+        MembershipPlan,
+        on_delete=models.PROTECT,
+        related_name="plan_memberships",
     )
 
     def __str__(self) -> str:
