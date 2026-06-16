@@ -18,7 +18,7 @@ class UserApiTests(TestCase):
         )
 
     def test_register_user(self) -> None:
-        url = reverse("users:register")  # Змінено на register
+        url = reverse("users:register")
         payload = {
             "email": "new@test.com",
             "password": "testpassword",
@@ -37,12 +37,12 @@ class UserApiTests(TestCase):
         self.assertIn("access", res.data)
 
     def test_get_profile_unauthorized(self) -> None:
-        url = reverse("users:manage-user")  # Змінено на manage-user
+        url = reverse("users:manage-user")
         res = self.client.get(url)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_profile_authorized(self) -> None:
-        url = reverse("users:manage-user")  # Змінено на manage-user
+        url = reverse("users:manage-user")
         self.client.force_authenticate(self.user)
 
         res = self.client.get(url)
