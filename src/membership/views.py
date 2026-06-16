@@ -15,15 +15,16 @@ from membership.serializers import (
     MembershipReadSerializer,
 )
 from payments.models import Payment
+from payments.stripe_helper import create_stripe_session
 from plans.models import MembershipPlan
 
 
 @extend_schema(tags=["Memberships"])
 class MembershipViewSet(viewsets.ModelViewSet):
     """
-        API endpoint for managing fitness club memberships.
-        Access is restricted to authorized clients only.
-        """
+    API endpoint for managing fitness club memberships.
+    Access is restricted to authorized clients only.
+    """
     queryset = Membership.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
@@ -56,12 +57,11 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 status=Membership.Status.PENDING,
             )
 
-            Payment.objects.create(
-                user=user,
-                status=Payment.Status.PENDING,
-                type=Payment.Type.MEMBERSHIP_PURCHASE,
-                membership_id=membership.id,
-                money_to_pay=membership.price_at_purchase
+            create_stripe_session(
+                membership=membership,
+                payment_type=Payment.Type.MEMBERSHIP_PURCHASE,
+                amount=membership.price_at_purchase,
+                request=self.request,
             )
 
     @action(detail=True, methods=["post"])
@@ -80,7 +80,6 @@ class MembershipViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
 
         frozen_from = serializer.validated_data["frozen_from"]
@@ -111,7 +110,6 @@ class MembershipViewSet(viewsets.ModelViewSet):
 
         if membership.frozen_to and today < membership.frozen_to:
             unused_freeze_days = (membership.frozen_to - today).days
-
             membership.end_date -= timedelta(days=unused_freeze_days)
 
         with transaction.atomic():
@@ -146,16 +144,14 @@ class MembershipViewSet(viewsets.ModelViewSet):
 
         credit = (membership.plan.price / membership.plan.duration_days) * remaining_days
         new_full_price = (new_plan.price / new_plan.duration_days) * remaining_days
-
         upgrade_fee = round(max(0, new_full_price - credit), 2)
 
         with transaction.atomic():
-            payment = Payment.objects.create(
-                user=request.user,
-                status=Payment.Status.PENDING,
-                type=Payment.Type.UPGRADE_FEE,
-                membership_id=membership.id,
-                money_to_pay=upgrade_fee
+            payment = create_stripe_session(
+                membership=membership,
+                payment_type=Payment.Type.UPGRADE_FEE,
+                amount=upgrade_fee,
+                request=request,
             )
 
             return Response({

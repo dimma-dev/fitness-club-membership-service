@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "plans",
     "users",
     "payments",
+    "notifications"
 ]
 
 MIDDLEWARE = [
@@ -201,3 +202,4 @@ SIMPLE_JWT = {
 # Telegram Bot Settings
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID")
+STRIPE_SECRET_KEY = "sk_test_secret_key"
