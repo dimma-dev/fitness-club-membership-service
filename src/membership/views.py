@@ -17,6 +17,7 @@ from membership.serializers import (
 from payments.models import Payment
 from payments.stripe_helper import create_stripe_session
 from plans.models import MembershipPlan
+from membership.tasks import notify_new_membership, notify_membership_frozen
 
 
 @extend_schema(tags=["Memberships"])
@@ -40,9 +41,14 @@ class MembershipViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["list", "retrieve"]:
             return MembershipReadSerializer
+        if self.action == "freeze":
+            return FreezeSerializer
         return MembershipCreateSerializer
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         user = self.request.user
         plan = serializer.validated_data["plan"]
         start_date = date.today()
@@ -63,12 +69,14 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 amount=membership.price_at_purchase,
                 request=self.request
             )
+
+        notify_new_membership.delay(membership.id)
+
         return Response({
             "membership": MembershipReadSerializer(membership).data,
             "stripe_session_url": payment.session_url,
             "payment_id": payment.id
         }, status=status.HTTP_201_CREATED)
-
 
     @action(detail=True, methods=["post"])
     def freeze(self, request, pk=None):
@@ -100,6 +108,8 @@ class MembershipViewSet(viewsets.ModelViewSet):
             membership.is_frozen_used = True
             membership.end_date += timedelta(days=freeze_days)
             membership.save()
+
+        notify_membership_frozen.delay(membership.id)
 
         return Response(MembershipReadSerializer(membership).data)
 
