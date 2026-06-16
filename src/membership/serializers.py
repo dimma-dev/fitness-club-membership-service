@@ -54,7 +54,7 @@ class FreezeSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "You can't freeze the past."
             )
-        freeze_days = (self.frozen_to - self.frozen_from).days
+        freeze_days = (data["frozen_to"] - data["frozen_from"]).days
         if freeze_days > 30:
             raise serializers.ValidationError(
                 "Freeze period cannot exceed 30 days."
