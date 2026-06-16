@@ -67,8 +67,6 @@ class MembershipViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def freeze(self, request, pk=None):
         membership = self.get_object()
-
-        # Проверки состояния абонемента в базе данных оставляем здесь
         if membership.status != Membership.Status.ACTIVE:
             return Response(
                 {"error": "Only an active subscription can be frozen."},
