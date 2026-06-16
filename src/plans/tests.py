@@ -124,6 +124,22 @@ class MembershipPlanApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("code", res.data)
 
+    def test_create_plan_negative_price_fails(self) -> None:
+        self.client.force_authenticate(self.admin_user)
+        url = reverse("membershipplan-list")
+        payload = {
+            "name": "Negative Price Plan",
+            "code": "negative-30",
+            "duration_days": 30,
+            "price": "-10.00",
+            "tier": "BASIC",
+        }
+        res = self.client.post(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("price", res.data)
+        self.assertFalse(MembershipPlan.objects.filter(code="negative-30").exists())
+
     def test_full_update_plan_as_admin(self) -> None:
         self.client.force_authenticate(self.admin_user)
         url = reverse("membershipplan-detail", args=[self.plan_basic.id])
