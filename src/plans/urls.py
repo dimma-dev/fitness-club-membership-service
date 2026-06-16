@@ -2,6 +2,6 @@ from rest_framework.routers import DefaultRouter
 from .views import MembershipPlanViewSet
 
 router = DefaultRouter()
-router.register(r"plans", MembershipPlanViewSet)
+router.register("", MembershipPlanViewSet)
 
 urlpatterns = router.urls
