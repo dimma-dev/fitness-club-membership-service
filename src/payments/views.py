@@ -17,6 +17,7 @@ from payments.services.stripe_service import StripeService
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+
 class CreateCheckoutSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -48,6 +49,7 @@ class CreateCheckoutSessionView(APIView):
             status=status.HTTP_201_CREATED
         )
 
+
 class PaymentSuccessView(APIView):
 
     def get(self, request):
@@ -61,6 +63,7 @@ class PaymentSuccessView(APIView):
             status=status.HTTP_200_OK
         )
 
+
 class PaymentCancelView(APIView):
 
     def get(self, request):
@@ -70,6 +73,7 @@ class PaymentCancelView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
 
 class StripeWebhookView(APIView):
     authentication_classes = []

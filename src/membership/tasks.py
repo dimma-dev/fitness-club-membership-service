@@ -2,6 +2,7 @@ from datetime import date, timedelta
 import html
 import logging
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 from notifications.services.telegram_service import TelegramService
@@ -73,25 +74,27 @@ def auto_renew_memberships():
     count = 0
     for old_membership in expired_auto_renew:
         has_pending = Payment.objects.filter(
-            user=old_membership.member,
+            membership__member=old_membership.member,
             status=Payment.Status.PENDING
         ).exists()
 
         if has_pending:
+            logger.info(f"Skipping auto-renew for user {old_membership.member.email}: pending payment exists.")
             continue
 
-        old_membership.auto_renew = False
-        old_membership.save()
+        with transaction.atomic():
+            old_membership.auto_renew = False
+            old_membership.save()
 
-        new_membership = Membership.objects.create(
-            member=old_membership.member,
-            plan=old_membership.plan,
-            start_date=today,
-            end_date=today + timedelta(days=old_membership.plan.duration_days),
-            status=Membership.Status.ACTIVE,
-            auto_renew=True,
-            price_at_purchase=old_membership.plan.price
-        )
+            new_membership = Membership.objects.create(
+                member=old_membership.member,
+                plan=old_membership.plan,
+                start_date=today,
+                end_date=today + timedelta(days=old_membership.plan.duration_days),
+                status=Membership.Status.ACTIVE,
+                auto_renew=True,
+                price_at_purchase=old_membership.plan.price
+            )
 
         message = (
             f"🔄 <b>Auto-Renewal Successful</b>\n"

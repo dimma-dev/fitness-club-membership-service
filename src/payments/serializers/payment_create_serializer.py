@@ -12,7 +12,7 @@ class PaymentCreateSerializer(serializers.Serializer):
 
     def validate_membership_id(self, value):
         try:
-            membership = Membership.objects.get(id=value)
+            Membership.objects.get(id=value)
         except Membership.DoesNotExist:
             raise serializers.ValidationError(
                 "Membership does not exist."
