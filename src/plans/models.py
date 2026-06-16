@@ -5,7 +5,7 @@ class MembershipPlan(models.Model):
 
     class Tier(models.TextChoices):
         BASIC = "basic", "Basic"
-        PRO = "pro", "Pro"
+        STANDARD = "standard", "Standard"
         PREMIUM = "premium", "Premium"
 
     name = models.CharField(max_length=100)
