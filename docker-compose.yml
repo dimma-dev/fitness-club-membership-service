@@ -1,5 +1,5 @@
 services:
-  postgres:
+  db:
     image: postgres:17-alpine
     restart: "no"
     ports:
@@ -41,7 +41,7 @@ services:
     env_file:
       - .env
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -61,7 +61,7 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-      postgres:
+      db:
         condition: service_healthy
     restart: "no"
 
@@ -79,7 +79,7 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-      postgres:
+      db:
         condition: service_healthy
     restart: "no"
 
