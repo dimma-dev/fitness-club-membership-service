@@ -4,9 +4,9 @@ from django.db import models
 class MembershipPlan(models.Model):
 
     class Tier(models.TextChoices):
-        BASIC = "basic", "Basic"
-        PRO = "pro", "Pro"
-        PREMIUM = "premium", "Premium"
+        BASIC = "BASIC", "Basic"
+        STANDARD = "STANDARD", "Standard"
+        PREMIUM = "PREMIUM", "Premium"
 
     name = models.CharField(max_length=100)
     code = models.SlugField(unique=True)
@@ -16,3 +16,8 @@ class MembershipPlan(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name = "Membership Plan"
+        verbose_name_plural = "Membership Plans"
+        ordering = ["price"]
