@@ -167,6 +167,5 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 "message": "Upgrade payment created. Once paid, your plan will be updated.",
                 "payment_id": payment.id,
                 "amount_to_pay": payment.money_to_pay,
-                "stripe_session_url": payment.session_url,
                 "new_plan_name": new_plan.name
             }, status=status.HTTP_201_CREATED)
