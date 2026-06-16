@@ -18,6 +18,7 @@ app.autodiscover_tasks()
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
+
 app.conf.beat_schedule = {
     "mark-expired-memberships": {
         "task": "membership.tasks.mark_expired_memberships",
