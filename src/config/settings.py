@@ -9,7 +9,7 @@ from decouple import Csv, config
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+ROOT_DIR = BASE_DIR.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-77rp0gyhi2(e(b8(qz3y+vqarbean2mw@8$jvkfl1=rbeo_=zd")
 
@@ -118,17 +118,54 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+STATIC_URL = config("STATIC_URL", default="/static/")
+STATIC_ROOT = ROOT_DIR / "staticfiles"  #
 
-STATIC_URL = "static/"
+MEDIA_URL = config("MEDIA_URL", default="/media/")
+MEDIA_ROOT = ROOT_DIR / "media"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
 
 # --- DRF SPECTACULAR ---
 SPECTACULAR_SETTINGS = {
     "TITLE": "Fitness Club Membership API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SCHEMA_PATH_PREFIX": r"/api/v[0-9]",
+    "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
     "SECURITY": [{"bearerAuth": []}],
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "displayOperationId": False,
+        "defaultModelsExpandDepth": -1,  # Прячет блок Models в самый низ
+    },
+    "AUTO_SCHEMA_EXTENSIONS": True,
+    "TAGS": [
+        {
+            "name": "Memberships",
+            "description": "Managing club memberships: purchase, status tracking, freezing, and plan upgrades.",
+        },
+        {
+            "name": "Users",
+            "description": "Managing user accounts, profiles, and JWT authentication.",
+        },
+    ],
 }
 
 # Celery Configuration
@@ -160,9 +197,6 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
-CELERY_TIMEZONE = "Europe/Kyiv"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
 
 # Telegram Bot Settings
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
