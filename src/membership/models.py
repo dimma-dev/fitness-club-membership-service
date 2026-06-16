@@ -38,6 +38,15 @@ class Membership(models.Model):
         related_name="plan_memberships",
     )
 
+    class Meta:
+        verbose_name = "Membership"
+        verbose_name_plural = "Memberships"
+        ordering = ["-start_date"]
+        indexes = [
+            models.Index(fields=["status", "end_date"], name="membership_status_end_idx"),
+            models.Index(fields=["member", "status"], name="membership_member_status_idx"),
+        ]
+
     def __str__(self) -> str:
         return (
             f"Membership #{self.pk}: {self.member} - "
