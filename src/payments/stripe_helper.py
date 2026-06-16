@@ -22,8 +22,11 @@ def create_stripe_session(membership, payment_type, amount, request):
             "quantity": 1,
         }],
         mode="payment",
-        success_url=request.build_absolute_uri("/api/payments/success/")
-            + "?session_id={CHECKOUT_SESSION_ID}",
+        success_url=(
+            request.build_absolute_uri(
+                "/api/payments/success/?session_id={CHECKOUT_SESSION_ID}"
+            )
+        ),
         cancel_url=request.build_absolute_uri("/api/payments/cancel/"),
     )
 
