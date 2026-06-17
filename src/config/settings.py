@@ -151,7 +151,9 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
     "SECURITY": [{"bearerAuth": []}],
+
     "AUTHENTICATION_WHITELIST": [],
+
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "displayOperationId": False,
@@ -208,8 +210,8 @@ if not DEBUG:
 
 # --JWT ----
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "AUTH_HEADER_TYPES": ("Authorize",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
@@ -219,5 +221,5 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID")
 
 # Stripe
-STRIPE_SECRET_KEY = ""
-STRIPE_WEBHOOK_SECRET = os.environ.get("", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
