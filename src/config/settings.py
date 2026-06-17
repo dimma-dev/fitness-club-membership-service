@@ -167,6 +167,10 @@ SPECTACULAR_SETTINGS = {
             "name": "Users",
             "description": "Managing user accounts, profiles, and JWT authentication.",
         },
+        {
+            "name": "Membership Plans",
+            "description": "Managing membership plans, filtered by tier.",
+        }
     ],
     "APPEND_COMPONENTS": {
         "securitySchemes": {
