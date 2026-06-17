@@ -150,7 +150,6 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
-
     "SECURITY": [{"bearerAuth": []}],
 
     "AUTHENTICATION_WHITELIST": [],
@@ -170,8 +169,11 @@ SPECTACULAR_SETTINGS = {
             "name": "Users",
             "description": "Managing user accounts, profiles, and JWT authentication.",
         },
+        {
+            "name": "Membership Plans",
+            "description": "Managing membership plans, filtered by tier.",
+        }
     ],
-    # 3. Твоя единственная явная схема
     "APPEND_COMPONENTS": {
         "securitySchemes": {
             "bearerAuth": {
@@ -183,7 +185,6 @@ SPECTACULAR_SETTINGS = {
         }
     },
 }
-
 
 # Celery Configuration
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -209,8 +210,8 @@ if not DEBUG:
 
 # --JWT ----
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "AUTH_HEADER_TYPES": ("Authorize",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
