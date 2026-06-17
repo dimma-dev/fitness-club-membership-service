@@ -8,7 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from membership.models import Membership
 from payments.models import Payment
-from payments.serializers.payment_create_serializer import PaymentCreateSerializer
+from membership.tasks import notify_payment_success
+from payments.serializers import PaymentSerializer
 from payments.services.stripe_service import StripeService
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -18,16 +19,14 @@ class CreateCheckoutSessionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = PaymentCreateSerializer(data=request.data)
+        serializer = PaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Безопасно достаем membership (если не найден — вернет 404 для клиента)
         membership = get_object_or_404(
             Membership,
             id=serializer.validated_data["membership_id"]
         )
 
-        # 1. Создаем платеж со статусом PENDING
         payment = Payment.objects.create(
             membership=membership,
             type=serializer.validated_data["payment_type"],
@@ -36,16 +35,12 @@ class CreateCheckoutSessionView(APIView):
         )
 
         try:
-            # 2. Генерируем сессию. Сервис должен обновить у себя внутри
-            # поля payment.session_id и payment.session_url и вызвать payment.save()
             session = StripeService.create_checkout_session(payment, request)
-
             return Response(
                 {"checkout_url": session.url},
                 status=status.HTTP_201_CREATED
             )
         except Exception as e:
-            # Если Stripe API упал, удаляем «черновик» платежа, чтобы не копить мусор
             payment.delete()
             return Response(
                 {"error": f"Stripe session creation failed: {str(e)}"},
@@ -54,9 +49,6 @@ class CreateCheckoutSessionView(APIView):
 
 
 class PaymentSuccessView(APIView):
-    """
-    GET: success/ - Проверяет статус платежа в нашей БД
-    """
 
     def get(self, request):
         session_id = request.query_params.get("session_id")
@@ -67,7 +59,6 @@ class PaymentSuccessView(APIView):
                 status=status.HTTP_200_OK
             )
 
-        # Пытаемся найти платеж по session_id, который Stripe прикрепит к редиректу
         payment = get_object_or_404(Payment, session_id=session_id)
 
         return Response(
@@ -81,9 +72,6 @@ class PaymentSuccessView(APIView):
 
 
 class PaymentCancelView(APIView):
-    """
-    GET: cancel/ - Сообщение о приостановке платежа
-    """
 
     def get(self, request):
         return Response(
@@ -106,34 +94,33 @@ class StripeWebhookView(APIView):
                 sig_header,
                 settings.STRIPE_WEBHOOK_SECRET
             )
-        except ValueError:
-            # Невалидный payload
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.SignatureVerificationError:
-            # Невалидная подпись (кто-то чужой шлет запрос)
+        except (ValueError, stripe.error.SignatureVerificationError):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        # Главный кейс — успешная оплата checkout
-        if event["type"] == "checkout.session.completed":
-            session = event["data"]["object"]
+        if event["type"] != "checkout.session.completed":
+            return Response(status=status.HTTP_200_OK)
 
-            # Извлекаем ID платежа из метаданных сессии
-            payment_id = session.get("metadata", {}).get("payment_id")
+        session = event["data"]["object"]
 
-            if not payment_id:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        session_dict = session.to_dict()
+        metadata = session_dict.get("metadata", {}) or {}
+        payment_id = metadata.get("payment_id")
 
-            try:
-                payment = Payment.objects.get(id=payment_id)
-            except Payment.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+        if not payment_id:
+            return Response(
+                {"detail": "Webhook received, but no payment_id in metadata (Test Trigger)"},
+                status=status.HTTP_200_OK
+            )
 
-            # Если платеж еще не отмечен как оплаченный (например, SuccessView не успел этого сделать)
-            if payment.status != Payment.Status.PAID:
-                payment.status = Payment.Status.PAID
-                payment.save(update_fields=["status"])
+        try:
+            payment = Payment.objects.get(id=payment_id)
+        except Payment.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
-                # 🔔 ВОТ ЗДЕСЬ идеальное место, чтобы вызвать Celery таску
-                # для активации абонемента или отправки сообщения в Телеграм!
+        if payment.status != Payment.Status.PAID:
+            payment.status = Payment.Status.PAID
+            payment.save(update_fields=["status"])
+
+            notify_payment_success.delay(payment.id)
 
         return Response(status=status.HTTP_200_OK)

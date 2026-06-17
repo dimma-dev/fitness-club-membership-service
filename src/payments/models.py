@@ -17,8 +17,6 @@ class Payment(models.Model):
             "Upgrade Fee"
         )
 
-    # Меняем на SET_NULL, чтобы не потерять историю платежей
-    # Делаем поле null=True, blank=True, так как абонемент теоретически может быть удален
     membership = models.ForeignKey(
         "membership.Membership",
         on_delete=models.SET_NULL,
@@ -43,14 +41,12 @@ class Payment(models.Model):
         decimal_places=2
     )
 
-    # Увеличиваем длину и разрешаем null, пока сессия не создана
     session_url = models.URLField(
         max_length=500,
         null=True,
         blank=True
     )
 
-    # Делаем уникальным для быстрого поиска и защиты от дублей
     session_id = models.CharField(
         max_length=255,
         unique=True,

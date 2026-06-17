@@ -155,7 +155,9 @@ def notify_membership_frozen(membership_id):
 @shared_task
 def notify_payment_success(payment_id):
     try:
-        payment = Payment.objects.select_related("user", "membership__plan").get(id=payment_id)
+        payment = Payment.objects.select_related(
+            "membership__member", "membership__plan"
+        ).get(id=payment_id)
         membership = payment.membership
 
         message = (

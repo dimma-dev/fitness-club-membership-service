@@ -8,7 +8,6 @@ from payments.views import (
 
 urlpatterns = [
     path("", CreateCheckoutSessionView.as_view(), name="payment-create"),
-    # 👑 ДОБАВЛЯЕМ СЮДА ИМЕНА МАРШРУТОВ (name)
     path("success/", PaymentSuccessView.as_view(), name="payment-success"),
     path("cancel/", PaymentCancelView.as_view(), name="payment-cancel"),
     path("webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),

@@ -125,7 +125,7 @@ services:
     command: >
       listen 
       --api-key ${STRIPE_SECRET_KEY} 
-      --forward-to web:8000/api/v1/payments/stripe-webhook/
+      --forward-to web:8000/api/payments/webhook/
     depends_on:
       - web
 
