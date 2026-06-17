@@ -97,20 +97,18 @@ docker-compose exec web python src/manage.py createsuperuser
 
 * The application validates the webhook signature, sets the payment status to PAID, activates/updates the membership, and triggers a staff notification.
 
-## 🤖 Telegram Notifications
+## ✉️ Telegram Notifications
 Club staff are kept up-to-date instantly via automated Telegram alerts whenever the following events occur:
 
-* 🆕 New Member Registration: When a new user signs up.
+* 💰 New Membership Purchase: Triggered when a member successfully purchases a new membership plan.
 
-* 💰 Successful Purchases: Details on plan tier, member ID, and amount paid.
+* ❄️ Freeze Actions: Instant notification when a membership is frozen, including freeze period details.
 
-* 🔄 Membership Renewals: Triggered upon automatic or manual extensions.
+* ⚠️ Expiration Warnings: Alerts sent at 7, 3, and 1 day before membership end date to help staff proactively manage retention.
 
-* ❄️ Freeze & Resume Actions: Instant tracking of member status alterations.
+* 🔄 Auto-Renew: Automatic membership renewal notification when a membership expires and auto_renew is enabled.
 
-* ⚠️ Expiration Warnings: Alerts for memberships expiring soon, helping staff proactively manage retention.
-
-* ❌ Cancellations: Notifications regarding subscription terminations.
+All notifications run asynchronously via Celery and are delivered to a dedicated Telegram chat using a bot.
 
 ## 🧪 Linting & Testing
 flake8 and black are utilized to maintain high code quality standards and compliance with PEP 8.
