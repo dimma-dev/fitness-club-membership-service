@@ -156,22 +156,41 @@ def notify_membership_frozen(membership_id):
 def notify_payment_success(payment_id):
     try:
         payment = Payment.objects.select_related(
-            "membership__member", "membership__plan"
+            "membership__member",
+            "membership__plan"
         ).get(id=payment_id)
+
         membership = payment.membership
+
+        if not membership:
+            error_msg = f"❌ Payment {payment_id} is received, but it has no linked membership!"
+            logger.error(error_msg)
+            return error_msg
+
+        member = membership.member
+        plan = membership.plan
+
+        member_name = html.escape(member.get_full_name()) if member else "Unknown Member"
+        member_email = html.escape(member.email) if member else "No Email"
+        plan_name = html.escape(plan.name) if plan else "Unknown Plan"
 
         message = (
             f"✅ <b>Payment Successful</b>\n"
             f"Payment ID: {payment.id}\n"
             f"Type: {payment.get_type_display()}\n"
             f"Amount: ${payment.money_to_pay}\n"
-            f"Member: {html.escape(membership.member.get_full_name())}\n"
-            f"Email: {html.escape(membership.member.email)}\n"
-            f"Plan: {html.escape(membership.plan.name)}"
+            f"Member: {member_name}\n"
+            f"Email: {member_email}\n"
+            f"Plan: {plan_name}"
         )
+
         TelegramService.send_message(message)
+        logger.info(f"🚀 Payment success notification sent for payment {payment_id}")
         return f"Payment success notification sent for payment {payment_id}"
 
     except Payment.DoesNotExist:
-        logger.warning(f"Payment {payment_id} not found")
+        logger.warning(f"⚠️ Payment {payment_id} not found")
         return f"Payment {payment_id} not found"
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in notify_payment_success: {str(e)}")
+        raise e
