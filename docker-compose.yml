@@ -117,6 +117,18 @@ services:
       start_period: 20s
     restart: "no"
 
+  stripe_cli:
+    image: stripe/stripe-cli:v1.23.0
+    restart: unless-stopped
+    volumes:
+      - ./.stripe:/root/.config/stripe
+    command: >
+      listen 
+      --api-key ${STRIPE_SECRET_KEY} 
+      --forward-to web:8000/api/v1/payments/stripe-webhook/
+    depends_on:
+      - web
+
 volumes:
   postgres_data:
     driver: local

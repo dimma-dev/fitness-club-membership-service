@@ -150,11 +150,15 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
+
     "SECURITY": [{"bearerAuth": []}],
+
+    "AUTHENTICATION_WHITELIST": [],
+
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "displayOperationId": False,
-        "defaultModelsExpandDepth": -1,  # Прячет блок Models в самый низ
+        "defaultModelsExpandDepth": -1,
     },
     "AUTO_SCHEMA_EXTENSIONS": True,
     "TAGS": [
@@ -167,7 +171,19 @@ SPECTACULAR_SETTINGS = {
             "description": "Managing user accounts, profiles, and JWT authentication.",
         },
     ],
+    # 3. Твоя единственная явная схема
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter your valid access token. The 'Bearer' prefix will be added automatically.",
+            }
+        }
+    },
 }
+
 
 # Celery Configuration
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -193,8 +209,8 @@ if not DEBUG:
 
 # --JWT ----
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Authorize",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
