@@ -52,7 +52,6 @@ class CreateCheckoutSessionView(APIView):
             )
 
 
-
 class PaymentSuccessView(APIView):
 
     def get(self, request):
