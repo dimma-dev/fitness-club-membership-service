@@ -352,7 +352,7 @@ class StripeWebhookViewTest(TestCase):
     def test_webhook_successful_payment(self, mock_notify, mock_construct):
         mock_session = MagicMock()
         mock_session.metadata = {"payment_id": str(self.payment.id)}
-        
+
         mock_event = {
             "type": "checkout.session.completed",
             "data": {"object": mock_session}
@@ -365,7 +365,7 @@ class StripeWebhookViewTest(TestCase):
             HTTP_STRIPE_SIGNATURE="valid_sig"
         )
         self.assertEqual(response.status_code, 200)
-        
+
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.Status.PAID)
 
@@ -373,7 +373,7 @@ class StripeWebhookViewTest(TestCase):
     def test_webhook_missing_payment_id(self, mock_construct):
         mock_session = MagicMock()
         mock_session.metadata = {}
-        
+
         mock_event = {
             "type": "checkout.session.completed",
             "data": {"object": mock_session}
@@ -391,7 +391,7 @@ class StripeWebhookViewTest(TestCase):
     def test_webhook_invalid_payment_id_format(self, mock_construct):
         mock_session = MagicMock()
         mock_session.metadata = {"payment_id": "invalid_string"}
-        
+
         mock_event = {
             "type": "checkout.session.completed",
             "data": {"object": mock_session}
