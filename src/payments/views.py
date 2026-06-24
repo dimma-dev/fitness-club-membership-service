@@ -97,10 +97,10 @@ class StripeWebhookView(APIView):
                 payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
             )
         except (ValueError, stripe.error.SignatureVerificationError) as e:
-            logger.error(f"❌ Webhook signature verification failed: {e}")
+            logger.error(f"Webhook signature verification failed: {e}")
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        logger.info(f"📩 Received Stripe event: {event['type']}")
+        logger.info(f"Received Stripe event: {event['type']}")
 
         if event["type"] != "checkout.session.completed":
             return Response(status=status.HTTP_200_OK)
@@ -119,36 +119,36 @@ class StripeWebhookView(APIView):
         raw_payment_id = getattr(metadata, "payment_id", None) if metadata else None
 
         if not raw_payment_id:
-            logger.warning("⚠️ Webhook received, but no payment_id in metadata.")
+            logger.warning("Webhook received, but no payment_id in metadata.")
             return None
 
         try:
             return int(raw_payment_id)
         except (ValueError, TypeError):
-            logger.error(f"❌ Invalid payment_id format in metadata: {raw_payment_id}")
-            return False  # Сигнал для HTTP 400 Bad Request
+            logger.error(f"Invalid payment_id format in metadata: {raw_payment_id}")
+            return False
 
     def _process_payment_completion(self, payment_id):
         try:
             payment = Payment.objects.select_related("membership").get(id=payment_id)
         except Payment.DoesNotExist:
-            logger.error(f"❌ Payment with ID {payment_id} not found in database")
+            logger.error(f"Payment with ID {payment_id} not found in database")
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if payment.status == Payment.Status.PAID:
-            logger.info(f"ℹ️ Payment {payment.id} is already marked as PAID")
+            logger.info(f"Payment {payment.id} is already marked as PAID")
             return Response(status=status.HTTP_200_OK)
 
         with transaction.atomic():
             payment.status = Payment.Status.PAID
             payment.save(update_fields=["status"])
-            logger.info(f"✅ Payment {payment.id} status updated to PAID.")
+            logger.info(f"Payment {payment.id} status updated to PAID.")
 
             membership = payment.membership
             if membership and membership.status == Membership.Status.PENDING:
                 membership.status = Membership.Status.ACTIVE
                 membership.save(update_fields=["status"])
-                logger.info(f"🏋️‍♂️ Membership {membership.id} status updated to ACTIVE.")
+                logger.info(f"Membership {membership.id} status updated to ACTIVE.")
 
         notify_payment_success.delay(payment.id)
         return Response(status=status.HTTP_200_OK)
