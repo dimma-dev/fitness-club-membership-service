@@ -1,3 +1,26 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 
-# Create your models here.
+
+class MembershipPlan(models.Model):
+
+    class Tier(models.TextChoices):
+        BASIC = "BASIC", "Basic"
+        STANDARD = "STANDARD", "Standard"
+        PREMIUM = "PREMIUM", "Premium"
+
+    name = models.CharField(max_length=100)
+    code = models.SlugField(unique=True)
+    duration_days = models.PositiveIntegerField()
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
+    )
+    tier = models.CharField(max_length=10, choices=Tier.choices)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Membership Plan"
+        verbose_name_plural = "Membership Plans"
+        ordering = ["price"]

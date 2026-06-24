@@ -1,89 +1,138 @@
 services:
-  postgres:
+  db:
     image: postgres:17-alpine
-    container_name: db
-    restart: unless-stopped
+    restart: "no"
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
-    container_name: redis
-    restart: unless-stopped
+    restart: "no"
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   web:
     build: .
-    container_name: django_web
+    image: my_django_app:local
     working_dir: /app/src
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
-      # bind container port 8000 to host localhost:8000 so app is reachable at 127.0.0.1:8000
-      - "127.0.0.1:8000:8000"
+      - "${DJANGO_PORT:-8000}:8000"
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     env_file:
       - .env
     depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/schema/').read()" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: "no"
 
   celery_worker:
     build: .
-    container_name: celery_worker
+    image: my_django_app:local
     working_dir: /app/src
     command: celery -A config worker --loglevel=info
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
-      - web
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "celery", "-A", "config", "inspect", "ping" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: "no"
 
   celery_beat:
     build: .
-    container_name: celery_beat
+    image: my_django_app:local
     working_dir: /app/src
     command: celery -A config beat --loglevel=info
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
-      - redis
-      - postgres
-      - web
-    restart: unless-stopped
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
 
   flower:
     build: .
-    container_name: celery_flower
+    image: my_django_app:local
     working_dir: /app/src
-    command: celery -A config flower --port=5555
+    command: celery -A config --broker=redis://redis:6379/0 flower --port=5555
     ports:
-      - "${FLOWER_PORT}:5555"
+      - "${FLOWER_PORT:-5555}:5555"
     volumes:
-      - .:/app
+      - ./src:/app/src
     env_file:
       - .env
     depends_on:
-      - redis
-      - celery_worker
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5555/" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: "no"
+
+  stripe_cli:
+    image: stripe/stripe-cli:v1.23.0
     restart: unless-stopped
+    volumes:
+      - ./.stripe:/root/.config/stripe
+    command: >
+      listen 
+      --api-key ${STRIPE_SECRET_KEY} 
+      --forward-to web:8000/api/payments/webhook/
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+  static_volume:
+  media_volume:
