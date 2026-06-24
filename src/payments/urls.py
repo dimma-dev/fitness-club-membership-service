@@ -8,7 +8,7 @@ from payments.views import (
 
 urlpatterns = [
     path("", CreateCheckoutSessionView.as_view(), name="payment-create"),
-    path("success/", PaymentSuccessView.as_view()),
-    path("cancel/", PaymentCancelView.as_view()),
-    path("webhook/", StripeWebhookView.as_view()),
+    path("success/", PaymentSuccessView.as_view(), name="payment-success"),
+    path("cancel/", PaymentCancelView.as_view(), name="payment-cancel"),
+    path("webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
 ]

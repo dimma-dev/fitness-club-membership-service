@@ -2,6 +2,7 @@ from datetime import date, timedelta
 import html
 import logging
 from celery import shared_task
+from django.db import transaction
 from django.utils import timezone
 
 from notifications.services.telegram_service import TelegramService
@@ -73,25 +74,27 @@ def auto_renew_memberships():
     count = 0
     for old_membership in expired_auto_renew:
         has_pending = Payment.objects.filter(
-            user=old_membership.member,
+            membership__member=old_membership.member,
             status=Payment.Status.PENDING
         ).exists()
 
         if has_pending:
+            logger.info(f"Skipping auto-renew for user {old_membership.member.email}: pending payment exists.")
             continue
 
-        old_membership.auto_renew = False
-        old_membership.save()
+        with transaction.atomic():
+            old_membership.auto_renew = False
+            old_membership.save()
 
-        new_membership = Membership.objects.create(
-            member=old_membership.member,
-            plan=old_membership.plan,
-            start_date=today,
-            end_date=today + timedelta(days=old_membership.plan.duration_days),
-            status=Membership.Status.ACTIVE,
-            auto_renew=True,
-            price_at_purchase=old_membership.plan.price
-        )
+            new_membership = Membership.objects.create(
+                member=old_membership.member,
+                plan=old_membership.plan,
+                start_date=today,
+                end_date=today + timedelta(days=old_membership.plan.duration_days),
+                status=Membership.Status.ACTIVE,
+                auto_renew=True,
+                price_at_purchase=old_membership.plan.price
+            )
 
         message = (
             f"🔄 <b>Auto-Renewal Successful</b>\n"
@@ -152,21 +155,42 @@ def notify_membership_frozen(membership_id):
 @shared_task
 def notify_payment_success(payment_id):
     try:
-        payment = Payment.objects.select_related("user", "membership__plan").get(id=payment_id)
+        payment = Payment.objects.select_related(
+            "membership__member",
+            "membership__plan"
+        ).get(id=payment_id)
+
         membership = payment.membership
+
+        if not membership:
+            error_msg = f"❌ Payment {payment_id} is received, but it has no linked membership!"
+            logger.error(error_msg)
+            return error_msg
+
+        member = membership.member
+        plan = membership.plan
+
+        member_name = html.escape(member.get_full_name()) if member else "Unknown Member"
+        member_email = html.escape(member.email) if member else "No Email"
+        plan_name = html.escape(plan.name) if plan else "Unknown Plan"
 
         message = (
             f"✅ <b>Payment Successful</b>\n"
             f"Payment ID: {payment.id}\n"
             f"Type: {payment.get_type_display()}\n"
             f"Amount: ${payment.money_to_pay}\n"
-            f"Member: {html.escape(membership.member.get_full_name())}\n"
-            f"Email: {html.escape(membership.member.email)}\n"
-            f"Plan: {html.escape(membership.plan.name)}"
+            f"Member: {member_name}\n"
+            f"Email: {member_email}\n"
+            f"Plan: {plan_name}"
         )
+
         TelegramService.send_message(message)
+        logger.info(f"🚀 Payment success notification sent for payment {payment_id}")
         return f"Payment success notification sent for payment {payment_id}"
 
     except Payment.DoesNotExist:
-        logger.warning(f"Payment {payment_id} not found")
+        logger.warning(f"⚠️ Payment {payment_id} not found")
         return f"Payment {payment_id} not found"
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in notify_payment_success: {str(e)}")
+        raise e

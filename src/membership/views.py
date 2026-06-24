@@ -1,7 +1,8 @@
 from datetime import date, timedelta
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status, serializers
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,7 +16,7 @@ from membership.serializers import (
     MembershipReadSerializer,
 )
 from payments.models import Payment
-from payments.stripe_helper import create_stripe_session
+from payments.services.stripe_service import StripeService
 from plans.models import MembershipPlan
 from membership.tasks import notify_new_membership, notify_membership_frozen
 
@@ -23,9 +24,9 @@ from membership.tasks import notify_new_membership, notify_membership_frozen
 @extend_schema(tags=["Memberships"])
 class MembershipViewSet(viewsets.ModelViewSet):
     """
-        API endpoint for managing fitness club memberships.
-        Access is restricted to authorized clients only.
-        """
+    API endpoint for managing fitness club memberships.
+    Access is restricted to authorized clients only.
+    """
     queryset = Membership.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
@@ -63,12 +64,12 @@ class MembershipViewSet(viewsets.ModelViewSet):
                 status=Membership.Status.PENDING,
             )
 
-            payment = create_stripe_session(
-                membership=membership,
-                payment_type=Payment.Type.MEMBERSHIP_PURCHASE,
-                amount=membership.price_at_purchase,
-                request=self.request
-            )
+        payment = StripeService.create_checkout_session(
+            membership=membership,
+            payment_type=Payment.Type.MEMBERSHIP_PURCHASE,
+            amount=membership.price_at_purchase,
+            request=self.request
+        )
 
         notify_new_membership.delay(membership.id)
 
@@ -94,7 +95,6 @@ class MembershipViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(data=request.data)
-
         serializer.is_valid(raise_exception=True)
 
         frozen_from = serializer.validated_data["frozen_from"]
@@ -127,7 +127,6 @@ class MembershipViewSet(viewsets.ModelViewSet):
 
         if membership.frozen_to and today < membership.frozen_to:
             unused_freeze_days = (membership.frozen_to - today).days
-
             membership.end_date -= timedelta(days=unused_freeze_days)
 
         with transaction.atomic():
@@ -143,13 +142,7 @@ class MembershipViewSet(viewsets.ModelViewSet):
         membership = self.get_object()
         new_plan_id = request.query_params.get("plan_id")
 
-        try:
-            new_plan = MembershipPlan.objects.get(id=new_plan_id)
-        except MembershipPlan.DoesNotExist:
-            return Response(
-                {"error": "Plan not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        new_plan = get_object_or_404(MembershipPlan, id=new_plan_id)
 
         if new_plan.price <= membership.plan.price:
             return Response(
@@ -165,17 +158,18 @@ class MembershipViewSet(viewsets.ModelViewSet):
 
         upgrade_fee = round(max(0, new_full_price - credit), 2)
 
-        with transaction.atomic():
-            payment = create_stripe_session(
-                membership=membership,
-                payment_type=Payment.Type.UPGRADE_FEE,
-                amount=upgrade_fee,
-                request=request
-            )
+        payment = StripeService.create_checkout_session(
+            membership=membership,
+            payment_type=Payment.Type.UPGRADE_FEE,
+            amount=upgrade_fee,
+            request=request,
+            new_plan_id=new_plan.id
+        )
 
-            return Response({
-                "message": "Upgrade payment created. Once paid, your plan will be updated.",
-                "payment_id": payment.id,
-                "amount_to_pay": payment.money_to_pay,
-                "new_plan_name": new_plan.name
-            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "message": "Upgrade payment created. Once paid, your plan will be updated.",
+            "stripe_session_url": payment.session_url,
+            "payment_id": payment.id,
+            "amount_to_pay": payment.money_to_pay,
+            "new_plan_name": new_plan.name
+        }, status=status.HTTP_201_CREATED)

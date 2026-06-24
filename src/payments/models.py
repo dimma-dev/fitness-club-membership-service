@@ -19,7 +19,9 @@ class Payment(models.Model):
 
     membership = models.ForeignKey(
         "membership.Membership",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="payments"
     )
 
@@ -40,11 +42,15 @@ class Payment(models.Model):
     )
 
     session_url = models.URLField(
+        max_length=500,
+        null=True,
         blank=True
     )
 
     session_id = models.CharField(
         max_length=255,
+        unique=True,
+        null=True,
         blank=True
     )
 
@@ -58,5 +64,5 @@ class Payment(models.Model):
     def __str__(self):
         return (
             f"Payment #{self.pk} "
-            f"({self.status})"
+            f"[{self.type}] - {self.status}"
         )

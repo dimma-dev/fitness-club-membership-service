@@ -151,10 +151,13 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": r"/api",
     "COMPONENT_SPLIT_REQUEST": True,
     "SECURITY": [{"bearerAuth": []}],
+
+    "AUTHENTICATION_WHITELIST": [],
+
     "SWAGGER_UI_SETTINGS": {
         "deepLinking": True,
         "displayOperationId": False,
-        "defaultModelsExpandDepth": -1,  # Прячет блок Models в самый низ
+        "defaultModelsExpandDepth": -1,
     },
     "AUTO_SCHEMA_EXTENSIONS": True,
     "TAGS": [
@@ -166,7 +169,21 @@ SPECTACULAR_SETTINGS = {
             "name": "Users",
             "description": "Managing user accounts, profiles, and JWT authentication.",
         },
+        {
+            "name": "Membership Plans",
+            "description": "Managing membership plans, filtered by tier.",
+        }
     ],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Enter your valid access token. The 'Bearer' prefix will be added automatically.",
+            }
+        }
+    },
 }
 
 # Celery Configuration
@@ -204,5 +221,5 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID")
 
 # Stripe
-STRIPE_SECRET_KEY = ""
-STRIPE_WEBHOOK_SECRET = os.environ.get("", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
